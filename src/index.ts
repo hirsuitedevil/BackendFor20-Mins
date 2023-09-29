@@ -39,6 +39,19 @@ app.get('/', async (req, res) => {
     const outerPolygon = responseIsoline.data.isolines[0].polygons[0].outer;
     const decodedPolygon = decode(outerPolygon);
 
+    // Check if latitude, longitude passed
+    const isLatLong = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?),\s*[-+]?(180(\.0+)?|((1[0-7]\d)|(\d{1,2}))(\.\d+)?)$/.test(service as string);
+    if (isLatLong) {
+      // Handle API call for latitude and longitude
+      const [lat, lng] = (service as string).split(/[\s,]+/);
+      const apiURLLatLong = `https://revgeocode.search.hereapi.com/v1/revgeocode?at=${lat}%2C${lng}&lang=en-US&apikey=${apiKey}`;
+      const responseLatLong = await axios.get(apiURLLatLong);
+
+      // Process the response as needed
+      res.send(responseLatLong.data);
+      return;
+    }
+
     // Request geocoding data
     const apiURLGeoCoding = `https://discover.search.hereapi.com/v1/discover?at=${loc}&q=${service}&apiKey=${apiKey}&limit=100`;
     const responseGeoCoding = await axios.get(apiURLGeoCoding);
