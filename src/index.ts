@@ -1,50 +1,103 @@
 import express from 'express';
 import axios from 'axios';
 import { decode } from './polylineUtils';
-import cors from "cors"
+import cors from 'cors';
+
 const app = express();
 const port = 5000;
 
-app.use(cors())
+app.use(cors());
+
+interface Position {
+  lat: number;
+  lng: number;
+}
+
+interface GeoCodingItem {
+  position: Position;
+  // Add other properties if needed
+  travelTime?: number; // Optional property for travel time
+}
 
 app.get('/', async (req, res) => {
   try {
-    const { loc, rangeType,rangeValue, transport, service } = req.query;
+    const { loc, rangeType, rangeValue, transport, service } = req.query;
     const apiKey = '7UalH_mc8-4SsygiyEDs5Y9FWsK9xsSDSA0hUPZW2lw';
 
-    var rangeVal=1;
-    if(rangeType === 'distance'){
+    let rangeVal = 1;
+    if (rangeType === 'distance') {
       rangeVal = 1000 * Number(rangeValue);
-    }else{
+    } else {
       rangeVal = 60 * Number(rangeValue);
     }
-    
+
     // Request isoline data
     const apiURLIsoline = `https://isoline.router.hereapi.com/v8/isolines?transportMode=${transport}&range[type]=${rangeType}&range[values]=${rangeVal}&origin=${loc}&apikey=${apiKey}`;
     const responseIsoline = await axios.get(apiURLIsoline);
 
     // Decode polyline data
     const outerPolygon = responseIsoline.data.isolines[0].polygons[0].outer;
-    const decodedPolygon = decode(outerPolygon);    
+    const decodedPolygon = decode(outerPolygon);
 
     // Request geocoding data
     const apiURLGeoCoding = `https://discover.search.hereapi.com/v1/discover?at=${loc}&q=${service}&apiKey=${apiKey}&limit=100`;
     const responseGeoCoding = await axios.get(apiURLGeoCoding);
 
-    const pos = responseGeoCoding.data.items.filter((i:any)=>{
-        function pointInPolygon(polygon : any, point : any) {
-            let odd = false;
-            for (let i = 0, j = polygon.length - 1; i < polygon.length; i++) {
-                if (((polygon[i][1] > point[1]) !== (polygon[j][1] > point[1])) 
-                    && (point[0] < ((polygon[j][0] - polygon[i][0]) * (point[1] - polygon[i][1]) / (polygon[j][1] - polygon[i][1]) + polygon[i][0]))) {
-                    odd = !odd;
-                }
-                j = i;
+    const pos: GeoCodingItem[] = responseGeoCoding.data.items.filter((i: GeoCodingItem) => {
+      function pointInPolygon(polygon: any, point: any) {
+        let odd = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; i++) {
+          if (
+            (polygon[i][1] > point[1]) !== (polygon[j][1] > point[1]) &&
+            point[0] <
+              ((polygon[j][0] - polygon[i][0]) * (point[1] - polygon[i][1]) / (polygon[j][1] - polygon[i][1]) +
+                polygon[i][0])
+          ) {
+            odd = !odd;
+          }
+          j = i;
+        }
+        return odd;
+      }
+      return pointInPolygon(decodedPolygon.polyline, [i.position.lat, i.position.lng]);
+    });
+
+    const promises = pos.map(async (point: GeoCodingItem) => {
+      try {
+        const { lat, lng } = point.position;
+
+        // Request route data for each point
+        const apiURLRouting = `https://router.hereapi.com/v8/routes?transportMode=${transport}&origin=${loc}&destination=${lat},${lng}&return=summary&apikey=${apiKey}`;
+        const routeResponse = await axios.get(apiURLRouting);
+
+        // Extract duration from the first route's summary
+        if (routeResponse.data.routes && routeResponse.data.routes.length > 0) {
+          const firstRoute = routeResponse.data.routes[0];
+
+          if (firstRoute.sections && firstRoute.sections.length > 0) {
+            const firstSection = firstRoute.sections[0];
+
+            if (firstSection.summary && firstSection.summary.duration) {
+              const durationInSeconds = firstSection.summary.duration;
+              point.travelTime = durationInSeconds;
+            } else {
+              console.error('Invalid or missing duration in the route section summary.');
             }
-            return odd;
-        };
-        return pointInPolygon(decodedPolygon.polyline,[i.position.lat,i.position.lng])
-    })
+          } else {
+            console.error('No sections found in the first route.');
+          }
+        } else {
+          console.error('No routes found in the response.');
+        }
+      } catch (error) {
+        console.error(`Error calculating time for point: ${point}`, error);
+        point.travelTime = 0; // Set to null or handle error as needed
+      }
+    });
+
+    // Wait for all the promises to resolve
+    await Promise.all(promises);
+
     res.send(pos);
   } catch (error) {
     console.error(error);
