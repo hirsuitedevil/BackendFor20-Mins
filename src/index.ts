@@ -22,7 +22,7 @@ interface GeoCodingItem {
 app.get('/', async (req, res) => {
   try {
     const { loc, rangeType, rangeValue, transport, service } = req.query;
-    const apiKey = 'quhVrdb2B-bvrDCtO1tp14k3VKC4-6nGCh9BuZUBQTA';
+    const apiKey = '1EhAO_a7NAqCH8w3l4vVQ_ERJXIw7_zNyYxdU_bkQMQ';
 
     let rangeVal = 1;
     if (rangeType === 'distance') {
