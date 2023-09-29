@@ -8,13 +8,10 @@ const port = 5000;
 app.use(cors())
 
 app.get('/', async (req, res) => {
-  console.log("AAAAAAAAAAA")
   try {
     const { loc, time, transport, service } = req.query;
     const apiKey = '7UalH_mc8-4SsygiyEDs5Y9FWsK9xsSDSA0hUPZW2lw';
     const timeInSec = 60 * Number(time);
-
-    console.log("Called")
 
     // Request isoline data
     const apiURLIsoline = `https://isoline.router.hereapi.com/v8/isolines?transportMode=${transport}&range[type]=time&range[values]=${timeInSec}&origin=${loc}&apikey=${apiKey}`;
@@ -22,16 +19,11 @@ app.get('/', async (req, res) => {
 
     // Decode polyline data
     const outerPolygon = responseIsoline.data.isolines[0].polygons[0].outer;
-    const decodedPolygon = decode(outerPolygon);
-
-    console.log("Decoded")
-    
+    const decodedPolygon = decode(outerPolygon);    
 
     // Request geocoding data
     const apiURLGeoCoding = `https://discover.search.hereapi.com/v1/discover?at=${loc}&q=${service}&apiKey=${apiKey}&limit=100`;
     const responseGeoCoding = await axios.get(apiURLGeoCoding);
-
-    console.log("Filtering")
 
     const pos = responseGeoCoding.data.items.filter((i:any)=>{
         function pointInPolygon(polygon : any, point : any) {
@@ -47,7 +39,6 @@ app.get('/', async (req, res) => {
         };
         return pointInPolygon(decodedPolygon.polyline,[i.position.lat,i.position.lng])
     })
-    console.log("Filtered")
     res.send(pos);
   } catch (error) {
     console.error(error);
