@@ -6,12 +6,18 @@ const port = 5000;
 
 app.get('/', async (req, res) => {
   try {
-    const { loc, time, transport, service } = req.query;
+    const { loc, rangeType,rangeValue, transport, service } = req.query;
     const apiKey = '7UalH_mc8-4SsygiyEDs5Y9FWsK9xsSDSA0hUPZW2lw';
-    const timeInSec = 60 * Number(time);
 
+    var rangeVal=1;
+    if(rangeType === 'distance'){
+      rangeVal = 1000 * Number(rangeValue);
+    }else{
+      rangeVal = 60 * Number(rangeValue);
+    }
+    
     // Request isoline data
-    const apiURLIsoline = `https://isoline.router.hereapi.com/v8/isolines?transportMode=${transport}&range[type]=time&range[values]=${timeInSec}&origin=${loc}&apikey=${apiKey}`;
+    const apiURLIsoline = `https://isoline.router.hereapi.com/v8/isolines?transportMode=${transport}&range[type]=${rangeType}&range[values]=${rangeVal}&origin=${loc}&apikey=${apiKey}`;
     const responseIsoline = await axios.get(apiURLIsoline);
 
     // Decode polyline data
@@ -37,6 +43,7 @@ app.get('/', async (req, res) => {
         };
         return pointInPolygon(decodedPolygon.polyline,[i.position.lat,i.position.lng])
     })
+
     res.json(pos)
   } catch (error) {
     console.error(error);
