@@ -1,8 +1,11 @@
 import express from 'express';
 import axios from 'axios';
 import { decode } from './polylineUtils';
+import cors from "cors"
 const app = express();
 const port = 5000;
+
+app.use(cors())
 
 app.get('/', async (req, res) => {
   try {
@@ -22,8 +25,7 @@ app.get('/', async (req, res) => {
 
     // Decode polyline data
     const outerPolygon = responseIsoline.data.isolines[0].polygons[0].outer;
-    const decodedPolygon = decode(outerPolygon);
-    
+    const decodedPolygon = decode(outerPolygon);    
 
     // Request geocoding data
     const apiURLGeoCoding = `https://discover.search.hereapi.com/v1/discover?at=${loc}&q=${service}&apiKey=${apiKey}&limit=100`;
@@ -43,11 +45,10 @@ app.get('/', async (req, res) => {
         };
         return pointInPolygon(decodedPolygon.polyline,[i.position.lat,i.position.lng])
     })
-
-    res.json(pos)
+    res.send(pos);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send({ error: 'Internal Server Error' });
   }
 });
 
