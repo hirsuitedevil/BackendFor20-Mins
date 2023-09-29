@@ -101,6 +101,24 @@ app.get('/', async (req, res) => {
     res.send(pos);
   } catch (error) {
     console.error(error);
+    res.send([]);
+  }
+});
+
+// Find Route Path
+app.get('/findRoute',async(req,res) => {
+  try {
+    const { loc, dest, transport } = req.query;
+    const apiKey = 'quhVrdb2B-bvrDCtO1tp14k3VKC4-6nGCh9BuZUBQTA';
+    const apiURLRoute = `https://router.hereapi.com/v8/routes?transportMode=${transport}&origin=${loc}8&destination=${dest}&return=polyline&apikey=${apiKey}`;
+    const responseRoute = await axios.get(apiURLRoute);
+    // Decode polyline data
+    const routeShape = responseRoute.data.routes[0].sections[0].polyline;
+    const decodedRoute = decode(routeShape);
+
+    res.send(decodedRoute);
+  } catch (error) {
+    console.error(error);
     res.status(500).send({ error: 'Internal Server Error' });
   }
 });
