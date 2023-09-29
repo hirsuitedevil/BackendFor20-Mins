@@ -5,7 +5,7 @@
  * License-Filename: LICENSE
  */
 
-const readline = require('readline');
+import readline from 'readline';
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -35,7 +35,7 @@ const CUSTOM2 = 7;
 
 const Num = typeof BigInt !== "undefined" ? BigInt : Number;
 
-function decode(encoded) {
+export function decode(encoded:any) {
     const decoder = decodeUnsignedValues(encoded);
     const header = decodeHeader(decoder[0], decoder[1]);
 
@@ -76,25 +76,25 @@ function decode(encoded) {
     };
 }
 
-function decodeChar(char) {
+function decodeChar(char:any) {
     const charCode = char.charCodeAt(0);
     return DECODING_TABLE[charCode - 45];
 }
 
-function decodeUnsignedValues(encoded) {
-    let result = Num(0);
-    let shift = Num(0);
-    const resList = [];
+function decodeUnsignedValues(encoded:any) {
+    let result = Number(0);
+    let shift = Number(0);
+    const resList : any[]= [];
 
-    encoded.split('').forEach((char) => {
-        const value = Num(decodeChar(char));
-        result |= (value & Num(0x1F)) << shift;
-        if ((value & Num(0x20)) === Num(0)) {
+    encoded.split('').forEach((char:any) => {
+        const value = Number(decodeChar(char));
+        result |= (value & Number(0x1F)) << shift;
+        if ((value & Number(0x20)) === Number(0)) {
             resList.push(result);
-            result = Num(0);
-            shift = Num(0);
+            result = Number(0);
+            shift = Number(0);
         } else {
-            shift += Num(5);
+            shift += Number(5);
         }
     });
 
@@ -105,7 +105,7 @@ function decodeUnsignedValues(encoded) {
     return resList;
 }
 
-function decodeHeader(version, encodedHeader) {
+function decodeHeader(version:any, encodedHeader:any) {
     if (+version.toString() !== FORMAT_VERSION) {
         throw new Error('Invalid format version');
     }
@@ -116,17 +116,24 @@ function decodeHeader(version, encodedHeader) {
     return { precision, thirdDim, thirdDimPrecision };
 }
 
-function toSigned(val) {
+function toSigned(val:any) {
     // Decode the sign from an unsigned value
     let res = val;
-    if (res & Num(1)) {
+    if (res & Number(1)) {
         res = ~res;
     }
-    res >>= Num(1);
+    res >>= Number(1);
     return +res.toString();
 }
 
-function encode({ precision = DEFAULT_PRECISION, thirdDim = ABSENT, thirdDimPrecision = 0, polyline }) {
+interface encodeProps {
+    precision: number,
+    thirdDim: number,
+    thirdDimPrecision: number,
+    polyline: any
+}
+
+function encode({ precision = DEFAULT_PRECISION, thirdDim = ABSENT, thirdDimPrecision = 0, polyline } : encodeProps) {
     // Encode a sequence of lat,lng or lat,lng(,{third_dim}). Note that values should be of type BigNumber
     //   `precision`: how many decimal digits of precision to store the latitude and longitude.
     //   `third_dim`: type of the third dimension if present in the input.
@@ -135,22 +142,22 @@ function encode({ precision = DEFAULT_PRECISION, thirdDim = ABSENT, thirdDimPrec
     const multiplierDegree = 10 ** precision;
     const multiplierZ = 10 ** thirdDimPrecision;
     const encodedHeaderList = encodeHeader(precision, thirdDim, thirdDimPrecision);
-    const encodedCoords = [];
+    const encodedCoords: any[] = [];
 
-    let lastLat = Num(0);
-    let lastLng = Num(0);
-    let lastZ = Num(0);
-    polyline.forEach((location) => {
-       const lat = Num(Math.round(location[0] * multiplierDegree));
+    let lastLat = Number(0);
+    let lastLng = Number(0);
+    let lastZ = Number(0);
+    polyline.forEach((location:any) => {
+       const lat = Number(Math.round(location[0] * multiplierDegree));
        encodedCoords.push(encodeScaledValue(lat - lastLat));
        lastLat = lat;
 
-       const lng = Num(Math.round(location[1] * multiplierDegree));
+       const lng = Number(Math.round(location[1] * multiplierDegree));
        encodedCoords.push(encodeScaledValue(lng - lastLng));
        lastLng = lng;
 
        if (thirdDim) {
-           const z = Num(Math.round(location[2] * multiplierZ));
+           const z = Number(Math.round(location[2] * multiplierZ));
            encodedCoords.push(encodeScaledValue(z - lastZ));
            lastZ = z;
        }
@@ -159,7 +166,7 @@ function encode({ precision = DEFAULT_PRECISION, thirdDim = ABSENT, thirdDimPrec
     return [...encodedHeaderList, ...encodedCoords].join('');
 }
 
-function encodeHeader(precision, thirdDim, thirdDimPrecision) {
+function encodeHeader(precision:any, thirdDim:any, thirdDimPrecision:any) {
     // Encode the `precision`, `third_dim` and `third_dim_precision` into one encoded char
     if (precision < 0 || precision > 15) {
         throw new Error('precision out of range. Should be between 0 and 15');
@@ -175,37 +182,27 @@ function encodeHeader(precision, thirdDim, thirdDimPrecision) {
     return encodeUnsignedNumber(FORMAT_VERSION) + encodeUnsignedNumber(res);
 }
 
-function encodeUnsignedNumber(val) {
+function encodeUnsignedNumber(val:any) {
     // Uses variable integer encoding to encode an unsigned integer. Returns the encoded string.
     let res = '';
-    let numVal = Num(val);
+    let numVal = Number(val);
     while (numVal > 0x1F) {
-        const pos = (numVal & Num(0x1F)) | Num(0x20);
+        const pos = (numVal & Number(0x1F)) | Number(0x20);
         res += ENCODING_TABLE[pos];
-        numVal >>= Num(5);
+        numVal >>= Number(5);
     }
     return res + ENCODING_TABLE[numVal];
 }
 
-function encodeScaledValue(value) {
+function encodeScaledValue(value:any) {
     // Transform a integer `value` into a variable length sequence of characters.
     //   `appender` is a callable where the produced chars will land to
-    let numVal = Num(value);
+    let numVal = Number(value);
     const negative = numVal < 0;
-    numVal <<= Num(1);
+    numVal <<= Number(1);
     if (negative) {
         numVal = ~numVal;
     }
 
     return encodeUnsignedNumber(numVal);
 }
-
-module.exports = {
-    encode,
-    decode,
-
-    ABSENT,
-    LEVEL,
-    ALTITUDE,
-    ELEVATION,
-};
