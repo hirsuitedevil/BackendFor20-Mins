@@ -118,6 +118,19 @@ app.get('/', async (req, res) => {
   }
 });
 
+app.get('/search',async(req,res) => {
+  try {
+    const {q} = req.query
+    const apiKey = 'quhVrdb2B-bvrDCtO1tp14k3VKC4-6nGCh9BuZUBQTA';
+    const apiURLGeocode = `https://geocode.search.hereapi.com/v1/geocode?q=${q}&apiKey=${apiKey}`;
+    const responseGeocode = await axios.get(apiURLGeocode);
+    res.send(responseGeocode.data);
+  } catch (error) {
+    console.error(error);
+    res.send([]);
+  }
+});
+
 // Find Route Path
 app.get('/findRoute',async(req,res) => {
   try {
