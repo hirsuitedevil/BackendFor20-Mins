@@ -53,10 +53,10 @@ app.get('/', async (req, res) => {
     }
 
     // Request geocoding data
-    const apiURLGeoCoding = `https://discover.search.hereapi.com/v1/discover?at=${loc}&q=${service}&apiKey=${apiKey}&limit=100`;
-    const responseGeoCoding = await axios.get(apiURLGeoCoding);
+    const apiURLDiscover = `https://discover.search.hereapi.com/v1/discover?at=${loc}&q=${service}&apiKey=${apiKey}&limit=100`;
+    const responseDiscover = await axios.get(apiURLDiscover);
 
-    const pos: GeoCodingItem[] = responseGeoCoding.data.items.filter((i: GeoCodingItem) => {
+    const pos: GeoCodingItem[] = responseDiscover.data.items.filter((i: GeoCodingItem) => {
       function pointInPolygon(polygon: any, point: any) {
         let odd = false;
         for (let i = 0, j = polygon.length - 1; i < polygon.length; i++) {
@@ -74,7 +74,13 @@ app.get('/', async (req, res) => {
       }
       return pointInPolygon(decodedPolygon.polyline, [i.position.lat, i.position.lng]);
     });
-
+    
+    if(pos.length === 0){
+      const apiURLGeocode = `https://geocode.search.hereapi.com/v1/geocode?q=${service}&apiKey=${apiKey}`;
+      const responseGeocode = await axios.get(apiURLGeocode);
+      const geocodeItems: GeoCodingItem[] = responseGeocode.data.items;
+      pos.push(...geocodeItems);
+    }
     const promises = pos.map(async (point: GeoCodingItem) => {
       try {
         const { lat, lng } = point.position;
@@ -112,19 +118,6 @@ app.get('/', async (req, res) => {
     await Promise.all(promises);
 
     res.send(pos);
-  } catch (error) {
-    console.error(error);
-    res.send([]);
-  }
-});
-
-app.get('/search',async(req,res) => {
-  try {
-    const {q} = req.query
-    const apiKey = 'quhVrdb2B-bvrDCtO1tp14k3VKC4-6nGCh9BuZUBQTA';
-    const apiURLGeocode = `https://geocode.search.hereapi.com/v1/geocode?q=${q}&apiKey=${apiKey}`;
-    const responseGeocode = await axios.get(apiURLGeocode);
-    res.send(responseGeocode.data);
   } catch (error) {
     console.error(error);
     res.send([]);
