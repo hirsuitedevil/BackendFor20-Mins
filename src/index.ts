@@ -76,7 +76,7 @@ app.get('/', async (req, res) => {
     });
     
     if(pos.length === 0){
-      const apiURLGeocode = `https://geocode.search.hereapi.com/v1/geocode?q=${service}&apiKey=${apiKey}`;
+      const apiURLGeocode = `https://discover.search.hereapi.com/v1/discover?at=${loc}&q=${service}&apiKey=${apiKey}`;
       const responseGeocode = await axios.get(apiURLGeocode);
       const geocodeItems: GeoCodingItem[] = responseGeocode.data.items;
       pos.push(...geocodeItems);
