@@ -57,7 +57,7 @@ app.get('/', async (req, res) => {
     const apiURLDiscover = `https://discover.search.hereapi.com/v1/discover?at=${loc}&q=${service}&apiKey=${apiKey}&limit=100`;
     const responseDiscover = await axios.get(apiURLDiscover);
 
-    const pos: GeoCodingItem[] = responseDiscover.data.items.filter((i: GeoCodingItem) => {
+    let pos: GeoCodingItem[] = responseDiscover.data.items.filter((i: GeoCodingItem) => {
       function pointInPolygon(polygon: any, point: any) {
         let odd = false;
         for (let i = 0, j = polygon.length - 1; i < polygon.length; i++) {
@@ -118,7 +118,9 @@ app.get('/', async (req, res) => {
 
     // Wait for all the promises to resolve
     await Promise.all(promises);
-
+    pos = pos.sort((a,b)=>{
+        return Number(b.likes)-Number(a.likes);
+      })
     res.send(pos);
   } catch (error) {
     console.error(error);
