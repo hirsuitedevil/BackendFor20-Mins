@@ -17,6 +17,7 @@ interface GeoCodingItem {
   position: Position;
   // Add other properties if needed
   travelTime?: number; // Optional property for travel time
+  likes: string;
 }
 
 app.get('/', async (req, res) => {
@@ -98,6 +99,7 @@ app.get('/', async (req, res) => {
 
             if (firstSection.summary && firstSection.summary.duration) {
               const durationInSeconds = firstSection.summary.duration;
+              point.likes = ((Math.random())*100).toFixed(0);
               point.travelTime = durationInSeconds;
             } else {
               console.error('Invalid or missing duration in the route section summary.');
